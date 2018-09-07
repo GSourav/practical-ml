@@ -1,0 +1,110 @@
+#Practical Machine Learning - Writeup
+
+#Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+
+#Data
+
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment.
+
+
+#Importing the Data
+```{r}
+training <- read.csv("C:/Users/Sourav/Documents/Machine Learning Coursera/Quiz/pml-training.csv")
+
+testing <- read.csv("C:/Users/Sourav/Documents/Machine Learning Coursera/Quiz/pml-testing.csv")
+
+dim(training)
+
+dim(testing)
+```
+
+Now we install the package required for the analysis
+```{r}
+library(caret)
+```
+
+#Cleaning the Data
+
+The data need to be processed before any analysis can be performed. First, we remove columns 1 to 5 since these variables are not useful for prediction:
+```{r}
+training1 <- training[, -(1:5)]
+testing1 <- testing[, -(1:5)]
+```
+
+Now,the data has several variables populated as 'NA'. variables with NA values are to be removed:
+```{r}
+training2 <- training1[sapply(training1, function(x) !any(is.na(x)))] 
+testing2 <- testing1[sapply(training1, function(x) !any(is.na(x)))] 
+```
+
+Next, we remove variables which have nearly zero variance since these variables are not desired as predictors:
+```{r}
+zerovar <- nearZeroVar(training2)
+
+training3 <- training2[,-zerovar]
+testing3 <- testing2[,-zerovar]
+```
+
+Checking the dimension of the data:
+```{r}
+dim(training3)
+dim(testing3)
+```
+It can be seen that there has been a significant reduction in the number of variables.
+Now the data is ready for analysis. So we partition the data into training and testing sets
+```{r}
+inTrain = createDataPartition(training3$classe, p = 0.7, list= FALSE)
+
+train_data = training3[ inTrain,]
+
+test_data = training3[-inTrain,]
+```
+
+#1.Linear Discriminant Method
+
+For a linear discriminant analysis, we use
+```{r}
+mod_lda <- train(classe ~ ., data = train_data, method = "lda")
+```
+
+We want to check accuracy of the method
+```{r}
+pred_lda <- predict(mod_lda, test_data)
+
+confusionMatrix(pred_lda, test_data$classe)$overall[1]
+```
+
+#2. Random Forest
+Next, we approach the problem with random forest technique
+```{r}
+mod_rf <- train(classe ~ ., data = train_data, method = "rf")
+```
+
+To cross validate on the testing set:
+```{r}
+pred_rf <- predict(mod_rf, test_data)
+
+confusionMatrix(pred_rf, test_data$classe)$overall[1]
+```
+
+From the accuracy, clearly, the model performs significantly well. Therefore, the prediction will be performed by random forest. 
+The predicted values of the variable classe is as below:
+```{r}
+pred_final <- predict(mod_rf, testing3)
+
+pred_final
+```
+
+#Conclusions
+In summary, we have learned how to peform variable reduction on data, how to partition the data for develop,ment and validation purposes, how to fit models and determine the better fit and finally, predicting with the fitted model.
